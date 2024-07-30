@@ -1,4 +1,6 @@
 const axios = require("axios");
+const fetch = require("node-fetch");
+
 const { connectionTeluk } = require("../config/Database.js");
 const {
   getDataBulan,

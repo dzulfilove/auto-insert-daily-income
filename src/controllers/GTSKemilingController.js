@@ -1,3 +1,5 @@
+const fetch = require("node-fetch");
+const fetch = require("node-fetch");
 const axios = require("axios");
 const { connectionGtsKemiling } = require("../config/Database.js");
 const {

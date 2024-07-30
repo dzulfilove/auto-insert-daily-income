@@ -1,3 +1,4 @@
+const fetch = require("node-fetch");
 const axios = require("axios");
 const { connectionGtsTirtayasa } = require("../config/Database.js");
 const {

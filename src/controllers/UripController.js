@@ -6,6 +6,7 @@ const {
   handleAddBulanan,
   sendMessage,
 } = require("../functions/Utils.js");
+const fetch = require("node-fetch");
 
 const port = 5005;
 const token = "wFcCXiNy1euYho73dBGwkPhjjTdODzv6";
