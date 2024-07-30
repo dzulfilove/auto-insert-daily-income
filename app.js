@@ -1,6 +1,5 @@
 const express = require("express");
 // const cors = require("cors");
-const fetch = require("node-fetch");
 
 const KemilingRoute = require("./src/Routes/KemilingRoute");
 const GadingRoute = require("./src/Routes/GadingRoute");

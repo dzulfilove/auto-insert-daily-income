@@ -6,7 +6,6 @@ const {
   handleAddBulanan,
   sendMessage,
 } = require("../functions/Utils.js");
-const fetch = require("node-fetch");
 
 const port = 5005;
 const token = "wFcCXiNy1euYho73dBGwkPhjjTdODzv6";
@@ -133,6 +132,8 @@ const storeHarian = async (req, res) => {
     let mess = "";
     const promises = dataKlinik.map(async (klinik) => {
       // Fetch data untuk setiap akun
+      const fetch = await import("node-fetch");
+
       const response = await fetch(
         `http://202.157.189.177:5005/tirtayasa/pendapatan/${klinik.akun}`
       );

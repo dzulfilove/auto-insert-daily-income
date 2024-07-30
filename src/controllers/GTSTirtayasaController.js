@@ -1,4 +1,3 @@
-const fetch = require("node-fetch");
 const axios = require("axios");
 const { connectionGtsTirtayasa } = require("../config/Database.js");
 const {
@@ -99,6 +98,8 @@ const storeHarian = async (req, res) => {
     let mess = "";
     const promises = dataKlinik.map(async (klinik) => {
       // Fetch data untuk setiap akun
+      const fetch = await import("node-fetch");
+
       const response = await fetch(
         `http://202.157.189.177:5005/gts-tirtayasa/pendapatan/${klinik.akun}`
       );

@@ -1,5 +1,4 @@
 const axios = require("axios");
-const fetch = require("node-fetch");
 
 const { connectionBugis } = require("../config/Database.js");
 const {
@@ -127,6 +126,8 @@ const storeHarian = async (req, res) => {
   try {
     let mess = "";
     const promises = dataKlinik.map(async (klinik) => {
+      // Fetch data untuk setiap akun
+      const fetch = await import("node-fetch");
       // Fetch data untuk setiap akun
       const response = await fetch(
         `http://202.157.189.177:5005/bugis/pendapatan/${klinik.akun}`
