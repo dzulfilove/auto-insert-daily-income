@@ -279,7 +279,7 @@ const handleAddBulanan = async (namaKlinik, idCabang) => {
 
 const sendMessage = async (text) => {
   try {
-    const response = await fetch(
+    const response = await fetch.default(
       "https://api.telegram.org/bot6823587684:AAE4Ya6Lpwbfw8QxFYec6xAqWkBYeP53MLQ/sendMessage",
       {
         method: "POST",

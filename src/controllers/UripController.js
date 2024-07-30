@@ -168,7 +168,7 @@ const storeHarian = async (req, res) => {
       // Fetch data untuk setiap akun
       const fetch = await import("node-fetch");
 
-      const response = await fetch(
+      const response = await fetch.default(
         `http://202.157.189.177:5005/urip/pendapatan/${klinik.akun}`
       );
       const dataResponse = await response.json();
