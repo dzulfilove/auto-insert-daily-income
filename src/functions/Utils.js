@@ -1,25 +1,27 @@
 const axios = require("axios");
 const moment = require("moment");
+const { connectionTeluk } = require("../config/Database.js");
+
 require("moment/locale/id"); // Mengimpor bahasa Indonesia untuk moment.js
 
 // Mengatur locale ke bahasa Indonesia
 moment.locale("id");
 
-// Mendapatkan tanggal hari ini
-const tanggalHariIni = moment();
+// // Mendapatkan tanggal hari ini
+// const tanggalHariIni = moment();
 
-// Mendapatkan tanggal awal bulan ini
-const tanggalAwalBulan = tanggalHariIni.clone().startOf("month");
+// // Mendapatkan tanggal awal bulan ini
+// const tanggalAwalBulan = tanggalHariIni.clone().startOf("month");
 
-// Mendapatkan tanggal akhir bulan ini
-const tanggalAkhirBulan = tanggalHariIni.clone().endOf("month");
+// // Mendapatkan tanggal akhir bulan ini
+// const tanggalAkhirBulan = tanggalHariIni.clone().endOf("month");
 
-// Format tanggal awal dan akhir bulan
-const tanggalAwalBulanFormatted = tanggalAwalBulan.format("DD MMMM YYYY");
-const tanggalAkhirBulanFormatted = tanggalAkhirBulan.format("DD MMMM YYYY");
+// // Format tanggal awal dan akhir bulan
+// const tanggalAwalBulanFormatted = tanggalAwalBulan.format("DD MMMM YYYY");
+// const tanggalAkhirBulanFormatted = tanggalAkhirBulan.format("DD MMMM YYYY");
 
-console.log(`Tanggal awal bulan ini: ${tanggalAwalBulanFormatted}`);
-console.log(`Tanggal akhir bulan ini: ${tanggalAkhirBulanFormatted}`);
+// console.log(`Tanggal awal bulan ini: ${tanggalAwalBulanFormatted}`);
+// console.log(`Tanggal akhir bulan ini: ${tanggalAkhirBulanFormatted}`);
 
 // Format YYYY-MM-DD
 const formatTanggal = (tanggal) => {
@@ -29,6 +31,53 @@ const formatTanggal = (tanggal) => {
   return `${tahun}-${bulan}-${hari}`;
 };
 
+const getTanggalInfo = async () => {
+  const queryGetTanggalHariIni = `SELECT CURDATE() AS today`;
+
+  try {
+    const [resultTanggalHariIni] = await connectionTeluk.query(
+      queryGetTanggalHariIni
+    );
+
+    // Mendapatkan tanggal hari ini dari hasil query
+    const tanggalHariIni = moment(resultTanggalHariIni[0].today);
+
+    // Mendapatkan tanggal sehari sebelum tanggal hari ini
+    const tanggalKemarin = tanggalHariIni.clone().subtract(1, "days");
+
+    // Mendapatkan tanggal awal bulan ini
+    const tanggalAwalBulan = tanggalHariIni.clone().startOf("month");
+
+    // Mendapatkan tanggal akhir bulan ini
+    const tanggalAkhirBulan = tanggalHariIni.clone().endOf("month");
+
+    // Mendapatkan jam sekarang
+    const jamSekarang = moment().format("HH:mm");
+
+    // Format tanggal awal dan akhir bulan
+    const tanggalAwalBulanFormatted = tanggalAwalBulan.format("YYYY-MM-DD");
+    const tanggalAkhirBulanFormatted = tanggalAkhirBulan.format("YYYY-MM-DD");
+    const tanggalKemarinFormatted = tanggalKemarin.format("DD MMMM YYYY");
+    const tanggalKemarinISOFormatted = tanggalKemarin.format("YYYY-MM-DD");
+    const bulan = tanggalHariIni.format("MMMM");
+    const tahun = tanggalHariIni.format("YYYY");
+
+    const tanggalInfo = {
+      tanggalHariIni: tanggalHariIni.format("DD MMMM YYYY"),
+      tanggalKemarin: tanggalKemarinFormatted,
+      tanggalKemarinISO: tanggalKemarinISOFormatted,
+      tanggalAwalBulan: tanggalAwalBulanFormatted,
+      tanggalAkhirBulan: tanggalAkhirBulanFormatted,
+      bulan: bulan,
+      tahun: tahun,
+      jamSekarang: jamSekarang,
+    };
+
+    return tanggalInfo;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
 const filterPendapatanBulanan = (dataArray, judulArray) => {
   if (!Array.isArray(dataArray) || !Array.isArray(judulArray)) {
     throw new Error("Parameter harus berupa array.");
@@ -116,93 +165,69 @@ const getTanggalInterval = (bulan, tahun) => {
   };
 };
 
-function encodeFilter(id, namaKlinik) {
-  const filter = {
-    user_field_names: true,
-    filters: {
-      filter_type: "AND",
-      filters: [
-        {
-          type: "contains",
-          field: "Judul",
-          value: `Penjualan ${namaKlinik} ${bulan} ${tahun}`,
-        },
-        // {
-        //   type: "link_row_contains",
-        //   field: "Id Cabang",
-        //   value: `${id}`,
-        // },
-        {
-          type: "contains",
-          field: "Tahun",
-          value: tahun,
-        },
-        {
-          type: "contains",
-          field: "Bulan",
-          value: bulan,
-        },
-      ],
-      groups: [],
-    },
+function encodeFilter(id, bulan, tahun) {
+  const filters = {
+    filter_type: "AND",
+    filters: [
+      {
+        type: "link_row_has",
+        field: "Id Cabang",
+        value: id,
+      },
+      {
+        type: "contains",
+        field: "Tahun",
+        value: tahun,
+      },
+      {
+        type: "contains",
+        field: "Bulan",
+        value: bulan,
+      },
+    ],
+    groups: [],
   };
-  const params = new URLSearchParams();
-  params.append("user_field_names", filter.user_field_names);
 
-  // Mengubah filter menjadi string JSON
-  const filtersJson = JSON.stringify(filter.filters);
-  params.append("filters", filtersJson);
-
-  return params.toString();
+  const encodedFilters = encodeURIComponent(JSON.stringify(filters));
+  return `user_field_names=true&filters=${encodedFilters}`;
 }
 
 function encodeFilterHarian(id) {
-  const filter = {
-    user_field_names: true,
-    filters: {
-      filter_type: "AND",
-      filters: [
-        {
-          type: "date_is",
-          field: "Dari Tanggal",
-          value: "Asia/Jakarta??yesterday",
-        },
-        {
-          type: "date_is",
-          field: "Sampai Tanggal",
-          value: "Asia/Jakarta??yesterday",
-        },
-        {
-          type: "link_row_contains",
-          field: "Id Penjualan Bulanan",
-          value: `${id}`,
-        },
-      ],
-      groups: [],
+  // Contoh penggunaan
+  const filters = [
+    {
+      type: "link_row_has",
+      field: "Id Penjualan Bulanan",
+      value: `${id}`,
     },
+    {
+      type: "date_is",
+      field: "Dari Tanggal",
+      value: "Asia/Jakarta??yesterday",
+    },
+  ];
+  const filterObject = {
+    filter_type: "AND",
+    filters: filters,
+    groups: [],
   };
 
-  const params = new URLSearchParams();
-  params.append("user_field_names", filter.user_field_names);
-
-  // Mengubah filter menjadi string JSON
-  const filtersJson = JSON.stringify(filter.filters);
-  params.append("filters", filtersJson);
-
-  return params.toString();
+  const encodedFilters = encodeURIComponent(JSON.stringify(filterObject));
+  return `user_field_names=true&filters=${encodedFilters}`;
 }
-const getDataHarian = async (idBulanan) => {
+const getDataHarian = async (idBulanan, judul) => {
   const param = encodeFilterHarian(idBulanan);
-  console.log(param);
+  console.log(param, "param harian");
   try {
     const response = await axios({
       method: "GET",
       url: "http://202.157.189.177:8080/api/database/rows/table/665/?" + param,
-
       headers: {
         Authorization: "Token wFcCXiNy1euYho73dBGwkPhjjTdODzv6",
       },
     });
+    console.log(response.data.results, "data harian");
+    console.log(idBulanan, "idbulan");
     return response.data.results; // Kembalikan hasil
   } catch (error) {
     console.error("Error saat mengambil data Harian:", error.message);
@@ -210,8 +235,11 @@ const getDataHarian = async (idBulanan) => {
   }
 };
 const getDataBulan = async (id, namaKlinik) => {
-  const param = encodeFilter(id, namaKlinik);
-  console.log(param);
+  const tanggalInfo = await getTanggalInfo();
+  const bulan = tanggalInfo.bulan;
+  const tahun = tanggalInfo.tahun;
+  const param = encodeFilter(id, bulan, tahun);
+  // console.log(param);
   try {
     const response = await axios({
       method: "GET",
@@ -232,13 +260,16 @@ const getDataBulan = async (id, namaKlinik) => {
 
 const handleAddBulanan = async (namaKlinik, idCabang) => {
   try {
+    const tanggalInfo = await getTanggalInfo();
+    const { bulan, tahun, tanggalAwalBulan, tanggalAkhirBulan } = tanggalInfo;
+
     const data = {
       Judul: `Penjualan ${namaKlinik} ${bulan} ${tahun}`,
       "Id Cabang": [idCabang], // Pastikan idCabang adalah string
       Tahun: [`${tahun}`], // Pastikan tahun adalah string
       Bulan: [`${bulan}`], // Pastikan bulan adalah string
-      "Tanggal Mulai": formatTanggal(tanggalAwalBulan), // Format YYYY-MM-DD
-      "Tanggal Berakhir": formatTanggal(tanggalAkhirBulan), // Format YYYY-MM-DD
+      "Tanggal Mulai": tanggalAwalBulan, // Format YYYY-MM-DD
+      "Tanggal Berakhir": tanggalAkhirBulan, // Format YYYY-MM-DD
       "Target Omset": 0, // Target sebagai angka
     };
 
@@ -310,4 +341,5 @@ module.exports = {
   getDataHarian,
   handleAddBulanan,
   sendMessage,
+  getTanggalInfo,
 };

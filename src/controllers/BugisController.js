@@ -6,6 +6,7 @@ const {
   handleAddBulanan,
   getDataHarian,
   sendMessage,
+  getTanggalInfo,
 } = require("../functions/Utils.js");
 
 const port = 5005;
@@ -28,27 +29,6 @@ const bulanIndonesia = [
   "November",
   "Desember",
 ];
-// Mengimpor pustaka moment.js
-const moment = require("moment");
-
-// Mendapatkan tanggal hari ini
-const tanggalHariIni = moment();
-
-// Mengurangi satu hari untuk mendapatkan tanggal kemarin
-const tanggalKemarin = tanggalHariIni.subtract(1, "days");
-
-// Mendapatkan hari, tahun, dan bulan dari tanggal kemarin
-const hari = tanggalKemarin.date();
-const tahun = tanggalKemarin.year();
-const bulan = tanggalKemarin.format("MM"); // Mendapatkan bulan dalam format dua digit
-
-// Mendapatkan jam dan menit dari tanggal kemarin
-const jam = tanggalKemarin.format("HH");
-const menit = tanggalKemarin.format("mm");
-
-const tanggalFormat = `${tahun}-${bulan}-${hari}`;
-const bulanString = tanggalKemarin.format("MMMM"); // Mendapatkan nama bulan dalam bahasa Indonesia
-const waktuFormat = `${jam}:${menit}`;
 const dataKlinik = [
   {
     nama: "Klinik Pratama Kosasih Amanah",
@@ -126,6 +106,8 @@ const getPendapatan = async (req, res) => {
 
 const storeHarian = async (req, res) => {
   try {
+    const tanggalInfo = await getTanggalInfo(); // Gunakan nama klinik
+
     let mess = "";
     const promises = dataKlinik.map(async (klinik) => {
       // Fetch data untuk setiap akun
@@ -166,7 +148,7 @@ const storeHarian = async (req, res) => {
 
       if (dataJasa.jml == 0.0) {
         console.log(`jasa is 0`);
-        const text = `Pendapatan ${klinik.nama}, Pada Tanggal ${hari} ${bulanString} ${tahun}. Belum Terupdate Karena Data VPS Belum Tersedia Pada jam ${waktuFormat}`;
+        const text = `Pendapatan ${klinik.nama}, Pada Tanggal ${tanggalInfo.tanggalKemarin}. Belum Terupdate Karena Data VPS Belum Tersedia Pada jam ${tanggalInfo.jamSekarang}`;
         await sendMessage(text);
         return {
           message: `jasa is 0, skipping execution for ${klinik.nama}`,
@@ -190,7 +172,11 @@ const storeHarian = async (req, res) => {
           pendapatanJasa: dataIncome[`jasa${klinikJnsAkunLower}`],
         };
 
-        const cekDataHarian = await getDataHarian(klinik.nama, idBulanan.id); // Gunakan nama klinik dan id
+        console.log("bulan");
+        console.log(idBulanan, "id Bulan");
+        const Judul = `Penjualan ${klinik.nama} Tanggal ${tanggalInfo.tanggalKemarin}`;
+
+        const cekDataHarian = await getDataHarian(idBulanan.id); // Gunakan nama klinik dan id
 
         if (cekDataHarian.length > 0) {
           return {
@@ -207,18 +193,18 @@ const storeHarian = async (req, res) => {
               "Content-Type": "application/json",
             },
             data: {
-              Judul: `Penjualan ${klinik.nama} Tanggal ${hari} ${bulanString} ${tahun}`,
+              Judul: `Penjualan ${klinik.nama} Tanggal ${tanggalInfo.tanggalKemarin}`,
               "Id Cabang": klinik.id,
               "Id Penjualan Bulanan": [idBulanan.id],
-              "Dari Tanggal": tanggalFormat,
-              "Sampai Tanggal": tanggalFormat,
+              "Dari Tanggal": tanggalInfo.tanggalKemarinISO,
+              "Sampai Tanggal": tanggalInfo.tanggalKemarinISO,
               "Penjualan Barang": dataBarang.jml || "0.00",
               "Penjualan Jasa": dataJasa.jml || "0.00",
               Diskon: 0,
               "Created At": new Date().toISOString(),
             },
           });
-          const text = `Pendapatan ${klinik.nama}, Pada Tanggal ${hari} ${bulanString} ${tahun}. Telah Berhasil Di Tambahkan Ke Baserow Pada jam ${waktuFormat}`;
+          const text = `Pendapatan ${klinik.nama}, Pada Tanggal ${tanggalInfo.tanggalKemarin}. Telah Berhasil Di Tambahkan Ke Baserow Pada jam ${tanggalInfo.jamSekarang}`;
           await sendMessage(text);
           return {
             message: "Data successfully inserted",

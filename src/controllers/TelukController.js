@@ -3,10 +3,12 @@ const axios = require("axios");
 const { connectionTeluk } = require("../config/Database.js");
 const {
   getDataBulan,
-  getDataHarian,
   handleAddBulanan,
+  getDataHarian,
   sendMessage,
+  getTanggalInfo,
 } = require("../functions/Utils.js");
+
 const port = 5005;
 const token = "wFcCXiNy1euYho73dBGwkPhjjTdODzv6";
 const namaKlinik = "Klinik Pratama Kosasih Teluk";
@@ -97,6 +99,8 @@ const getPendapatan = async (req, res) => {
 };
 
 const storeHarian = async (req, res) => {
+  const tanggalInfo = await getTanggalInfo(); // Gunakan nama klinik
+
   try {
     let mess = "";
     const promises = dataKlinik.map(async (klinik) => {
@@ -135,10 +139,9 @@ const storeHarian = async (req, res) => {
       console.log(dataIncome, "data Pendapatan");
       console.log(dataResponse, "data Semua Pendapatan");
       console.log(`barang${dataJasa} is 0`, dataJasa);
-
       if (dataJasa.jml == 0.0) {
         console.log(`jasa is 0`);
-        const text = `Pendapatan ${klinik.nama}, Pada Tanggal ${hari} ${bulanString} ${tahun}. Belum Terupdate Karena Data VPS Belum Tersedia Pada jam ${waktuFormat}`;
+        const text = `Pendapatan ${klinik.nama}, Pada Tanggal ${tanggalInfo.tanggalKemarin}. Belum Terupdate Karena Data VPS Belum Tersedia Pada jam ${tanggalInfo.jamSekarang}`;
         await sendMessage(text);
         return {
           message: `jasa is 0, skipping execution for ${klinik.nama}`,
@@ -162,7 +165,7 @@ const storeHarian = async (req, res) => {
           pendapatanJasa: dataIncome[`jasa${klinikJnsAkunLower}`],
         };
 
-        const cekDataHarian = await getDataHarian(klinik.nama, idBulanan.id); // Gunakan nama klinik dan id
+        const cekDataHarian = await getDataHarian(idBulanan.id); // Gunakan nama klinik dan id
 
         if (cekDataHarian.length > 0) {
           return {
@@ -179,18 +182,18 @@ const storeHarian = async (req, res) => {
               "Content-Type": "application/json",
             },
             data: {
-              Judul: `Penjualan ${klinik.nama} Tanggal ${hari} ${bulanString} ${tahun}`,
+              Judul: `Penjualan ${klinik.nama} Tanggal ${tanggalInfo.tanggalKemarin}`,
               "Id Cabang": klinik.id,
               "Id Penjualan Bulanan": [idBulanan.id],
-              "Dari Tanggal": tanggalFormat,
-              "Sampai Tanggal": tanggalFormat,
+              "Dari Tanggal": tanggalInfo.tanggalKemarinISO,
+              "Sampai Tanggal": tanggalInfo.tanggalKemarinISO,
               "Penjualan Barang": dataBarang.jml || "0.00",
               "Penjualan Jasa": dataJasa.jml || "0.00",
               Diskon: 0,
               "Created At": new Date().toISOString(),
             },
           });
-          const text = `Pendapatan ${klinik.nama}, Pada Tanggal ${hari} ${bulanString} ${tahun}. Telah Berhasil Di Tambahkan Ke Baserow Pada jam ${waktuFormat}`;
+          const text = `Pendapatan ${klinik.nama}, Pada Tanggal ${tanggalInfo.tanggalKemarin}. Telah Berhasil Di Tambahkan Ke Baserow Pada jam ${tanggalInfo.jamSekarang}`;
           await sendMessage(text);
           return {
             message: "Data successfully inserted",
