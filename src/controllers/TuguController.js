@@ -47,24 +47,26 @@ const bulanIndonesia = [
   "November",
   "Desember",
 ];
+// Mengimpor pustaka moment.js
+const moment = require("moment");
 
-const tanggalHariIni = new Date();
+// Mendapatkan tanggal hari ini
+const tanggalHariIni = moment();
 
-// Mengurangi satu hari dari tanggal hari ini untuk mendapatkan tanggal kemarin
-tanggalHariIni.setDate(tanggalHariIni.getDate() - 1);
+// Mengurangi satu hari untuk mendapatkan tanggal kemarin
+const tanggalKemarin = tanggalHariIni.subtract(1, "days");
 
 // Mendapatkan hari, tahun, dan bulan dari tanggal kemarin
-const hari = tanggalHariIni.getDate(); // Mendapatkan tanggal (1-31)
-const tahun = tanggalHariIni.getFullYear(); // Mendapatkan tahun
-const bulanIndex = tanggalHariIni.getMonth(); // Bulan mulai dari 0
-const bulan = String(bulanIndex + 1).padStart(2, "0"); // Mendapatkan bulan (1-12)
+const hari = tanggalKemarin.date();
+const tahun = tanggalKemarin.year();
+const bulan = tanggalKemarin.format("MM"); // Mendapatkan bulan dalam format dua digit
 
-// Mendapatkan jam dan menit dari tanggal hari ini
-const jam = String(tanggalHariIni.getHours()).padStart(2, "0");
-const menit = String(tanggalHariIni.getMinutes()).padStart(2, "0");
+// Mendapatkan jam dan menit dari tanggal kemarin
+const jam = tanggalKemarin.format("HH");
+const menit = tanggalKemarin.format("mm");
 
 const tanggalFormat = `${tahun}-${bulan}-${hari}`;
-const bulanString = bulanIndonesia[bulanIndex];
+const bulanString = tanggalKemarin.format("MMMM"); // Mendapatkan nama bulan dalam bahasa Indonesia
 const waktuFormat = `${jam}:${menit}`;
 
 const getPendapatan = async (req, res) => {

@@ -1,33 +1,25 @@
 const axios = require("axios");
+const moment = require("moment");
+require("moment/locale/id"); // Mengimpor bahasa Indonesia untuk moment.js
 
-const bulanIndonesia = [
-  "Januari",
-  "Februari",
-  "Maret",
-  "April",
-  "Mei",
-  "Juni",
-  "Juli",
-  "Agustus",
-  "September",
-  "Oktober",
-  "November",
-  "Desember",
-];
+// Mengatur locale ke bahasa Indonesia
+moment.locale("id");
 
 // Mendapatkan tanggal hari ini
-const tanggalHariIni = new Date();
-
-// Mendapatkan tahun dan bulan dari tanggal hari ini
-const tahun = tanggalHariIni.getFullYear();
-const bulanIndex = tanggalHariIni.getMonth(); // Bulan mulai dari 0
-const bulan = bulanIndonesia[bulanIndex];
+const tanggalHariIni = moment();
 
 // Mendapatkan tanggal awal bulan ini
-const tanggalAwalBulan = new Date(tahun, bulanIndex, 1); // 1 hari dari bulan ini
+const tanggalAwalBulan = tanggalHariIni.clone().startOf("month");
 
 // Mendapatkan tanggal akhir bulan ini
-const tanggalAkhirBulan = new Date(tahun, bulanIndex + 1, 0); // 0 hari dari bulan berikutnya, yang berarti tanggal terakhir bulan ini
+const tanggalAkhirBulan = tanggalHariIni.clone().endOf("month");
+
+// Format tanggal awal dan akhir bulan
+const tanggalAwalBulanFormatted = tanggalAwalBulan.format("DD MMMM YYYY");
+const tanggalAkhirBulanFormatted = tanggalAkhirBulan.format("DD MMMM YYYY");
+
+console.log(`Tanggal awal bulan ini: ${tanggalAwalBulanFormatted}`);
+console.log(`Tanggal akhir bulan ini: ${tanggalAkhirBulanFormatted}`);
 
 // Format YYYY-MM-DD
 const formatTanggal = (tanggal) => {
