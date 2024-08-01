@@ -114,7 +114,7 @@ const storeHarian = async (req, res) => {
       const fetch = await import("node-fetch");
       // Fetch data untuk setiap akun
       const response = await fetch.default(
-        `http://202.157.189.177:5005/bugis/pendapatan/${klinik.akun}`
+        `http://202.157.189.177/:5005/bugis/pendapatan/${klinik.akun}`
       );
       const dataResponse = await response.json();
 

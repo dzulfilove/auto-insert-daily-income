@@ -59,8 +59,8 @@ const getTanggalInfo = async () => {
     const tanggalAkhirBulanFormatted = tanggalAkhirBulan.format("YYYY-MM-DD");
     const tanggalKemarinFormatted = tanggalKemarin.format("DD MMMM YYYY");
     const tanggalKemarinISOFormatted = tanggalKemarin.format("YYYY-MM-DD");
-    const bulan = tanggalHariIni.format("MMMM");
-    const tahun = tanggalHariIni.format("YYYY");
+    const bulan = tanggalKemarin.format("MMMM");
+    const tahun = tanggalKemarin.format("YYYY");
 
     const tanggalInfo = {
       tanggalHariIni: tanggalHariIni.format("DD MMMM YYYY"),
@@ -78,6 +78,7 @@ const getTanggalInfo = async () => {
     throw new Error(error.message);
   }
 };
+
 const filterPendapatanBulanan = (dataArray, judulArray) => {
   if (!Array.isArray(dataArray) || !Array.isArray(judulArray)) {
     throw new Error("Parameter harus berupa array.");
