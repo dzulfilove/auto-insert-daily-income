@@ -48,7 +48,7 @@ const schedule = "0 8,13,17,23 * * *"; // At 8 AM, 1 PM, 5 PM, and 11 PM every d
 
 cron.schedule(schedule, () => {
   axios
-    .get("http://202.157.189.177/:5005/run")
+    .get("http://202.157.189.177:5005/run")
     .then((response) => {
       console.log(`Success: ${response.data}`);
     })

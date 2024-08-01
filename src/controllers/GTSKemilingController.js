@@ -106,7 +106,7 @@ const storeHarian = async (req, res) => {
       const fetch = await import("node-fetch");
 
       const response = await fetch.default(
-        `http://202.157.189.177/:5005/gts-kemiling/pendapatan/${klinik.akun}`
+        `http://202.157.189.177:5005/gts-kemiling/pendapatan/${klinik.akun}`
       );
       const dataResponse = await response.json();
 
