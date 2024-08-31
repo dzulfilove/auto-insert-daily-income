@@ -46,38 +46,46 @@ app.use(PalapaRoute);
 // Menjadwalkan cron job
 
 const urls = [
-  `http://202.157.189.177:5005/bugis/pendapatan/harian/store`,
-  `http://202.157.189.177:5005/gading/pendapatan/harian/store`,
-  `http://202.157.189.177:5005/kemiling/pendapatan/harian/store`,
-  `http://202.157.189.177:5005/palapa/pendapatan/harian/store`,
-  `http://202.157.189.177:5005/panjang/pendapatan/harian/store`,
-  `http://202.157.189.177:5005/rajabasa/pendapatan/harian/store`,
-  `http://202.157.189.177:5005/teluk/pendapatan/harian/store`,
-  `http://202.157.189.177:5005/tirtayasa/pendapatan/harian/store`,
-  `http://202.157.189.177:5005/tugu/pendapatan/harian/store`,
-  `http://202.157.189.177:5005/urip/pendapatan/harian/store`,
-  `http://202.157.189.177:5005/gts-kemiling/pendapatan/harian/store`,
-  `http://202.157.189.177:5005/gts-tirtayasa/pendapatan/harian/store`,
+  `http://localhost:5005/bugis/pendapatan/harian/store`,
+  `http://localhost:5005/gading/pendapatan/harian/store`,
+  `http://localhost:5005/kemiling/pendapatan/harian/store`,
+  `http://localhost:5005/palapa/pendapatan/harian/store`,
+  `http://localhost:5005/panjang/pendapatan/harian/store`,
+  `http://localhost:5005/rajabasa/pendapatan/harian/store`,
+  `http://localhost:5005/teluk/pendapatan/harian/store`,
+  `http://localhost:5005/tirtayasa/pendapatan/harian/store`,
+  `http://localhost:5005/tugu/pendapatan/harian/store`,
+  `http://localhost:5005/urip/pendapatan/harian/store`,
+  `http://localhost:5005/gts-kemiling/pendapatan/harian/store`,
+  `http://localhost:5005/gts-tirtayasa/pendapatan/harian/store`,
 ];
 
 const startTimes = [8, 13, 17, 23]; // Jam mulai 08:00, 13:00, 17:00, dan 23:00
 
 startTimes.forEach((startTime) => {
   urls.forEach((url, index) => {
-    const scheduleTime = `${index * 10} ${startTime} * * *`; // Interval 10 menit untuk setiap URL
+    const minute = (index * 10) % 60; // Menjamin nilai menit berada dalam rentang 0-59
+    let hour = startTime + Math.floor((index * 10) / 60); // Menambah jam jika menit melebihi 59
+    if (hour >= 24) {
+      hour = hour % 24; // Menghindari jam lebih dari 23
+    }
+    const scheduleTime = `${minute} ${hour} * * *`; // Menyusun jadwal
     cron.schedule(scheduleTime, () => {
       axios
         .get(url)
         .then((response) => {
-          console.log(`Success: ${url} at ${startTime}:00 - ${response.data}`);
+          console.log(
+            `Success: ${url} at ${hour}:${minute} - ${response.data}`
+          );
         })
         .catch((error) => {
-          console.error(`Error: ${url} at ${startTime}:00 - ${error.message}`);
+          console.error(
+            `Error: ${url} at ${hour}:${minute} - ${error.message}`
+          );
         });
     });
   });
 });
-
 app.listen(port, () => {
   console.log(`Server berjalan di port: ${port}`);
 });
