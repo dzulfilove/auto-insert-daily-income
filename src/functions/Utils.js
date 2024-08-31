@@ -79,6 +79,45 @@ const getTanggalInfo = async () => {
   }
 };
 
+const getLastThreeDates = () => {
+  const dates = [];
+  const today = new Date();
+
+  const monthNames = [
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ];
+
+  for (let i = 1; i <= 3; i++) {
+    // Memulai dari i=1 untuk tanggal kemarin
+    const date = new Date();
+    date.setDate(today.getDate() - i);
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const monthName = monthNames[date.getMonth()];
+
+    dates.push({
+      format1: `${year}-${month}-${day}`, // YYYY-MM-DD
+      format2: `${day}/${month}/${year}`, // DD/MM/YYYY
+      format3: `${day} ${monthName} ${year}`, // DD MMMM YYYY
+    });
+  }
+
+  return dates;
+};
+
 const filterPendapatanBulanan = (dataArray, judulArray) => {
   if (!Array.isArray(dataArray) || !Array.isArray(judulArray)) {
     throw new Error("Parameter harus berupa array.");
@@ -193,7 +232,7 @@ function encodeFilter(id, bulan, tahun) {
   return `user_field_names=true&filters=${encodedFilters}`;
 }
 
-function encodeFilterHarian(id) {
+function encodeFilterHarian(id, date) {
   // Contoh penggunaan
   const filters = [
     {
@@ -202,9 +241,9 @@ function encodeFilterHarian(id) {
       value: `${id}`,
     },
     {
-      type: "date_is",
+      type: "contains",
       field: "Dari Tanggal",
-      value: "Asia/Jakarta??yesterday",
+      value: `${date}`,
     },
   ];
   const filterObject = {
@@ -216,8 +255,8 @@ function encodeFilterHarian(id) {
   const encodedFilters = encodeURIComponent(JSON.stringify(filterObject));
   return `user_field_names=true&filters=${encodedFilters}`;
 }
-const getDataHarian = async (idBulanan, judul) => {
-  const param = encodeFilterHarian(idBulanan);
+const getDataHarian = async (idBulanan, date) => {
+  const param = encodeFilterHarian(idBulanan, date);
   console.log(param, "param harian");
   try {
     const response = await axios({
@@ -343,4 +382,5 @@ module.exports = {
   handleAddBulanan,
   sendMessage,
   getTanggalInfo,
+  getLastThreeDates,
 };

@@ -6,6 +6,7 @@ const {
   handleAddBulanan,
   sendMessage,
   getTanggalInfo,
+  getLastThreeDates,
 } = require("../functions/Utils.js");
 
 const port = 5005;
@@ -17,13 +18,13 @@ const dataKlinik = [
     nama: "Klinik Kosasih Rawat Inap Sumber Waras",
     id: 4,
     akun: "",
-    jnsAkun: "Klinik",
+    jnsAkun: "klinik",
   },
   {
     nama: "Laboratorium Sumber Waras",
     id: 5,
     akun: "",
-    jnsAkun: "Lab",
+    jnsAkun: "lab",
   },
 ];
 const idCabang = [5, 4];
@@ -69,183 +70,195 @@ const getPendapatan = async (req, res) => {
   const idPendapatanJasaKlinik = 402.001;
   const idPendapatanBarangLab = 401.007;
   const idPendapatanJasaLab = 402.007;
+  const dates = getLastThreeDates();
+  const pendapatanResults = [];
 
-  const queryGetPendapatanBarangKlinik = `
+  for (const date of dates) {
+    const queryGetPendapatanBarangKlinik = `
     SELECT SUM(debit - credit) AS balance
     FROM journaltrans
     WHERE approved = 1
-      AND DATE(jtdate) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+      AND DATE(jtdate) = '${date.format1}'
       AND accountid = '${idPendapatanBarangKlinik}'
       AND division IN ('1');`;
 
-  const queryGetPendapatanJasaKlinik = `
+    const queryGetPendapatanJasaKlinik = `
     SELECT SUM(debit - credit) AS balance
     FROM journaltrans
     WHERE approved = 1
-      AND DATE(jtdate) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+        AND DATE(jtdate) = '${date.format1}'
       AND accountid = '${idPendapatanJasaKlinik}'
       AND division IN ('1');`;
 
-  const queryGetPendapatanBarangLab = `
+    const queryGetPendapatanBarangLab = `
     SELECT SUM(debit - credit) AS balance
     FROM journaltrans
     WHERE approved = 1
-      AND DATE(jtdate) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+        AND DATE(jtdate) = '${date.format1}'
       AND accountid = '${idPendapatanBarangLab}'
       AND division IN ('1');`;
 
-  const queryGetPendapatanJasaLab = `
+    const queryGetPendapatanJasaLab = `
     SELECT SUM(debit - credit) AS balance
     FROM journaltrans
     WHERE approved = 1
-      AND DATE(jtdate) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+        AND DATE(jtdate) = '${date.format1}'
       AND accountid = '${idPendapatanJasaLab}'
       AND division IN ('1');`;
 
-  try {
-    const [resultPendapatanBarangKlinik] = await connectionGading.query(
-      queryGetPendapatanBarangKlinik
-    );
-    const [resultPendapatanJasaKlinik] = await connectionGading.query(
-      queryGetPendapatanJasaKlinik
-    );
-    const [resultPendapatanBarangLab] = await connectionGading.query(
-      queryGetPendapatanBarangLab
-    );
-    const [resultPendapatanJasaLab] = await connectionGading.query(
-      queryGetPendapatanJasaLab
-    );
+    try {
+      const [resultPendapatanBarangKlinik] = await connectionGading.query(
+        queryGetPendapatanBarangKlinik
+      );
+      const [resultPendapatanJasaKlinik] = await connectionGading.query(
+        queryGetPendapatanJasaKlinik
+      );
+      const [resultPendapatanBarangLab] = await connectionGading.query(
+        queryGetPendapatanBarangLab
+      );
+      const [resultPendapatanJasaLab] = await connectionGading.query(
+        queryGetPendapatanJasaLab
+      );
 
-    const pendapatan = {
-      barangKlinik: Math.abs(resultPendapatanBarangKlinik[0].balance) || 0,
-      jasaKlinik: Math.abs(resultPendapatanJasaKlinik[0].balance) || 0,
-      barangLab: Math.abs(resultPendapatanBarangLab[0].balance) || 0,
-      jasaLab: Math.abs(resultPendapatanJasaLab[0].balance) || 0,
-    };
-
-    res.json(pendapatan);
-  } catch (error) {
-    res.json({
-      error: error.message,
-    });
+      pendapatanResults.push({
+        tanggal: date, // Menyimpan semua format tanggal
+        barangKlinik: Math.abs(resultPendapatanBarangKlinik[0].balance) || 0,
+        jasaKlinik: Math.abs(resultPendapatanJasaKlinik[0].balance) || 0,
+        barangLab: Math.abs(resultPendapatanBarangLab[0].balance) || 0,
+        jasaLab: Math.abs(resultPendapatanJasaLab[0].balance) || 0,
+      });
+    } catch (error) {
+      res.json({
+        error: error.message,
+      });
+    }
   }
+  res.json(pendapatanResults);
 };
 
 const storeHarian = async (req, res) => {
   const tanggalInfo = await getTanggalInfo(); // Gunakan nama klinik
 
   try {
-    let mess = "";
-    const promises = dataKlinik.map(async (klinik) => {
-      // Fetch data untuk setiap akun
-      const fetch = await import("node-fetch");
+    const fetch = await import("node-fetch");
 
-      const response = await fetch.default(
-        `http://202.157.189.177:5005/gading/pendapatan/${klinik.akun}`
-      );
-      const dataResponse = await response.json();
+    const response = await fetch.default(
+      `http://202.157.189.177:5005/gading/pendapatan/`
+    );
+    const dataResponse = await response.json();
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
 
-      // Mengambil property yang mengandung kata "gigi" (diubah sesuai klinik.jnsAkun)
-      const klinikJnsAkunLower = klinik.jnsAkun.toLowerCase();
-      // Mengambil property yang mengandung kata "gigi"
-      const dataIncome = Object.keys(dataResponse)
-        .filter((key) => key.includes(`${klinik.jnsAkun}`))
-        .reduce((obj, key) => {
-          obj[key] = dataResponse[key];
-          return obj;
-        }, {});
-      const dataJasa = Object.keys(dataIncome)
-        .filter((key) => key.includes("jasa"))
-        .reduce((obj, key) => {
-          obj[key] = dataIncome[key]; // Keep the original property
-          obj["jml"] = dataIncome[key]; // Add the new property 'jml' with the same value
-          return obj;
-        }, {});
+    // Looping untuk setiap tanggal dalam dataResponse
+    for (let dates of dataResponse) {
+      for (let klinik of dataKlinik) {
+        // Pisahkan properti `tanggal` dari objek `dates`
+        const { tanggal, ...klinikData } = dates;
 
-      const dataBarang = Object.keys(dataIncome)
-        .filter((key) => key.includes("barang"))
-        .reduce((obj, key) => {
-          obj[key] = dataIncome[key]; // Keep the original property
-          obj["jml"] = dataIncome[key]; // Add the new property 'jml' with the same value
-          return obj;
-        }, {});
-      console.log(dataIncome, "data Pendapatan");
-      console.log(dataResponse, "data Semua Pendapatan");
-      console.log(`barang${dataJasa} is 0`, dataJasa);
-      if (dataJasa.jml == 0.0) {
-        console.log(`jasa is 0`);
-        const text = `Pendapatan ${klinik.nama}, Pada Tanggal ${tanggalInfo.tanggalKemarin}. Belum Terupdate Karena Data VPS Belum Tersedia Pada jam ${tanggalInfo.jamSekarang}`;
-        await sendMessage(text);
-        return {
-          message: `jasa is 0, skipping execution for ${klinik.nama}`,
-        };
-      } else {
-        const dataBulanKlinik = await getDataBulan(klinik.id, klinik.nama); // Gunakan nama klinik
+        // Mengambil property yang mengandung kata sesuai dengan klinik.jnsAkun
+        const klinikJnsAkunLower = klinik.jnsAkun.toLowerCase();
+
+        // Debugging logs
+        console.log("Klinik Jns Akun Lower:", klinikJnsAkunLower);
+        console.log(
+          "Available keys in klinikData object:",
+          Object.keys(klinikData)
+        );
+
+        // Mengambil property yang sesuai dengan akun klinik
+        const dataIncome = Object.keys(klinikData)
+          .filter((key) => key.toLowerCase().includes(klinikJnsAkunLower))
+          .reduce((obj, key) => {
+            obj[key] = klinikData[key];
+            return obj;
+          }, {});
+
+        // Output
+        console.log("Tanggal:", tanggal);
+        console.log("Data Income:", dataIncome);
+
+        // Mengambil pendapatan jasa
+        const dataJasa = Object.keys(dataIncome)
+          .filter((key) => key.includes("jasa"))
+          .reduce((obj, key) => {
+            obj[key] = dataIncome[key];
+            obj["jml"] = dataIncome[key];
+            return obj;
+          }, {});
+
+        // Mengambil pendapatan barang
+        const dataBarang = Object.keys(dataIncome)
+          .filter((key) => key.includes("barang"))
+          .reduce((obj, key) => {
+            obj[key] = dataIncome[key];
+            obj["jml"] = dataIncome[key];
+            return obj;
+          }, {});
+
+        // Mengecek apakah jasa adalah 0
+        if (dataJasa.jml == 0.0) {
+          const text = `Pendapatan ${klinik.nama}, Pada Tanggal ${dates.tanggal.format3}. Belum Terupdate Karena Data VPS Belum Tersedia Pada jam ${tanggalInfo.jamSekarang}`;
+          await sendMessage(text);
+          res.write(`<p>${text}</p>`);
+          continue;
+        }
+
+        // Mengambil atau membuat data bulanan klinik
+        let dataBulanKlinik = await getDataBulan(klinik.id, klinik.nama);
         let idBulanan = 0;
 
         if (dataBulanKlinik.length > 0) {
-          console.log("Data Bulan sudah ada");
-          idBulanan = dataBulanKlinik[0];
+          idBulanan = dataBulanKlinik[0].id;
         } else {
-          console.log("menambah data");
-          const addBulanan = await handleAddBulanan(klinik.nama, klinik.id); // Gunakan id klinik
-          idBulanan = addBulanan;
+          const addBulanan = await handleAddBulanan(klinik.nama, klinik.id);
+          idBulanan = addBulanan.id;
         }
 
-        console.log("bulan");
-        console.log(idBulanan, "id Bulan");
-
-        // Siapkan omset data
-        const omset = {
-          pendapatanBarang: dataIncome[`barang${klinikJnsAkunLower}`],
-          pendapatanJasa: dataIncome[`jasa${klinikJnsAkunLower}`],
-        };
-
-        const cekDataHarian = await getDataHarian(idBulanan.id); // Gunakan nama klinik dan id
+        // Mengecek data harian
+        const cekDataHarian = await getDataHarian(
+          idBulanan,
+          dates.tanggal.format2
+        );
 
         if (cekDataHarian.length > 0) {
-          return {
-            message: "Data Penjualan Harian sudah Ada",
-            data: cekDataHarian,
-          };
-        } else {
-          // POST request untuk setiap klinik
-          const result = await axios({
-            method: "POST",
-            url: "http://202.157.189.177:8080/api/database/rows/table/665/?user_field_names=true",
-            headers: {
-              Authorization: `Token ${token}`,
-              "Content-Type": "application/json",
-            },
-            data: {
-              Judul: `Penjualan ${klinik.nama} Tanggal ${tanggalInfo.tanggalKemarin}`,
-              "Id Cabang": klinik.id,
-              "Id Penjualan Bulanan": [idBulanan.id],
-              "Dari Tanggal": tanggalInfo.tanggalKemarinISO,
-              "Sampai Tanggal": tanggalInfo.tanggalKemarinISO,
-              "Penjualan Barang": dataBarang.jml || "0.00",
-              "Penjualan Jasa": dataJasa.jml || "0.00",
-              Diskon: 0,
-              "Created At": new Date().toISOString(),
-            },
-          });
-          const text = `Pendapatan ${klinik.nama}, Pada Tanggal ${tanggalInfo.tanggalKemarin}. Telah Berhasil Di Tambahkan Ke Baserow Pada jam ${tanggalInfo.jamSekarang}`;
-          await sendMessage(text);
-          return {
-            message: "Data successfully inserted",
-            data: result.data,
-          };
+          const message = `Data Penjualan Harian ${klinik.nama} sudah ada untuk tanggal ${dates.tanggal.format3}`;
+          res.write(`<p>${message}</p>`);
+          console.log(message);
+          continue;
         }
-      }
-    });
 
-    const results = await Promise.all(promises);
-    res.json({
-      message: "Data successfully processed for all cabang",
-      results: results,
-    });
+        // POST request untuk menambahkan data harian
+        const result = await axios({
+          method: "POST",
+          url: "http://202.157.189.177:8080/api/database/rows/table/665/?user_field_names=true",
+          headers: {
+            Authorization: `Token ${token}`,
+            "Content-Type": "application/json",
+          },
+          data: {
+            Judul: `Penjualan ${klinik.nama} Tanggal ${dates.tanggal.format3}`,
+            "Id Cabang": klinik.id,
+            "Id Penjualan Bulanan": [idBulanan],
+            "Dari Tanggal": dates.tanggal.format1,
+            "Sampai Tanggal": dates.tanggal.format1,
+            "Penjualan Barang": dataBarang.jml || "0.00",
+            "Penjualan Jasa": dataJasa.jml || "0.00",
+            Diskon: 0,
+            "Created At": new Date().toISOString(),
+          },
+        });
+
+        const text = `Pendapatan ${klinik.nama}, Pada Tanggal ${dates.tanggal.format3}. Telah Berhasil Ditambahkan Ke Baserow Pada jam ${tanggalInfo.jamSekarang}`;
+        await sendMessage(text);
+        res.write(`<p>${text}</p>`);
+      }
+    }
+
+    // Akhiri respon
+    res.write(`<p>Data successfully processed for all cabang</p>`);
+    res.end();
   } catch (error) {
-    res.json({ error: error.message });
+    res.write(`<p>Error: ${error.message}</p>`);
+    res.end();
   }
 };
 
